@@ -36,8 +36,11 @@ export type {
     RevenueParams,
     PurchaseParams,
     SubscriptionParams,
+    AdRevenueParams,
     DeepLinkData,
     DeepLinkListener,
+    AttributionListener,
     ConversionValueResult,
+    PurchaseVerificationResult,
     AttributionData,
 } from "./types";

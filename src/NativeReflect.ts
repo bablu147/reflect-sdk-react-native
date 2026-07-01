@@ -1,67 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  TurboModule spec for Reflect native module.
-//  This defines the bridge interface between JS and native code.
-//  Compatible with both Old Architecture (Bridge) and New Architecture (JSI).
+//  Native bridge to the shared ReflectCore engine.
+//
+//  The native module (Android ReflectModule.java, iOS ReflectModule.swift) exposes
+//  ONE generic dispatcher — handle(method, args) — that maps 1:1 onto the core's
+//  ReflectCore.handle(method, args, result). Fire-and-forget commands resolve
+//  null; getters + async commands resolve a value (String / Boolean / JSON string,
+//  JSON.parsed by the caller where needed). This replaces the old per-method
+//  standalone spec — all SDK logic now lives in the shared core.
+//
+//  Legacy bridge (NativeModules proxy) — NOT a TurboModule. It runs under the New
+//  Architecture via the interop layer; a future codegen/TurboModule migration is
+//  separable and does not change this binding.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NativeModules, Platform } from "react-native";
 
 export interface NativeReflectSpec {
-    /** Initialize the SDK with config JSON. Must be called first. */
-    initialize(configJson: string): void;
-
-    /** Track an event with optional properties JSON. */
-    trackEvent(eventName: string, propertiesJson: string | null): void;
-
-    /** Track a revenue event. */
-    trackRevenue(
-        amount: number,
-        currency: string,
-        transactionId: string | null,
-        productId: string | null,
-        revenueType: string | null,
-    ): void;
-
-    /** Set a user ID for cross-device attribution. */
-    setUserId(userId: string): void;
-
-    /** Clear user ID (e.g., on logout). */
-    clearUserId(): void;
-
-    /** Set user-level properties. */
-    setUserProperties(propertiesJson: string): void;
-
-    /** Grant or revoke advertising ID consent. */
-    setAdvertisingConsent(granted: boolean): void;
-
-    /** Get the current install UUID. Returns a promise. */
-    getInstallUuid(): Promise<string>;
-
-    /** Get attribution data. Returns JSON string or null. */
-    getAttribution(): Promise<string | null>;
-
-    /** Update SKAN conversion value (iOS only). */
-    updateConversionValue(
-        fineValue: number,
-        coarseValue: string | null,
-        lockWindow: boolean,
-    ): Promise<string>;
-
-    /** Register for deep link callbacks. Returns the initial deep link if any. */
-    getInitialDeepLink(): Promise<string | null>;
-
-    /** GDPR — delete all user data. Returns JSON result. */
-    deleteUserData(): Promise<string>;
-
-    /** Enable/disable SDK. */
-    setEnabled(enabled: boolean): void;
-
-    /** Flush pending events immediately. */
-    flush(): void;
+    /** Generic command dispatcher → ReflectCore.handle(method, args, result). */
+    handle(method: string, args: Record<string, unknown> | null): Promise<unknown>;
 }
 
 const LINKING_ERROR =
-    `The package '@reflect-sdk/react-native' doesn't seem to be linked. Make sure:\n\n` +
+    `The package 'reflect-react-native' doesn't seem to be linked. Make sure:\n\n` +
     Platform.select({
         ios: "- You ran 'pod install' in the ios/ directory\n",
         default: "",

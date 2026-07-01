@@ -1,36 +1,84 @@
+group 'com.reflect.rn'
+version '2.0.0'
+
 buildscript {
+    ext.kotlin_version = '1.8.22'
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:8.1.0"
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
-apply plugin: "com.android.library"
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }   // the published reflect-android core (JitPack)
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+// ── DUAL-MODE core resolution ────────────────────────────────────────────────
+//  • Monorepo dev: the shared core sources sit at ../../reflect-android — compile
+//    them from source, so core edits are picked up instantly with no publish step.
+//    (The module is symlinked into the app's node_modules, so resolve the real path
+//    via canonicalFile — a lexical '../../' would miss the monorepo root.)
+//  • Published consumer (no monorepo sibling): pull the core as a versioned AAR from
+//    JitPack — com.github.bablu147:reflect-android:<version> — which carries its own
+//    transitive deps (Play referrer / App Set ID / GAID) + R8 consumer rules.
+def coreSrcDir = new File(projectDir.canonicalFile.parentFile.parentFile, 'reflect-android/src/main/kotlin')
+def useLocalCore = coreSrcDir.exists()
 
 android {
-    namespace "com.reflect.rn"
-    compileSdkVersion 34
+    namespace 'com.reflect.rn'
+    compileSdk 34
+
+    // RN 0.73 builds against Java 17 — align the module (kotlin + javac must match).
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.kotlin.srcDirs += 'src/main/kotlin'
+        if (useLocalCore) {
+            main.kotlin.srcDirs += coreSrcDir.path
+        }
+    }
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 34
+        minSdk 21
+        // Propagate keep-rules for the reflectively-loaded GAID/OAID/Huawei classes
+        // to the consumer app's R8. (The JitPack AAR also carries these, so they
+        // apply either way.) See consumer-rules.pro.
+        consumerProguardFiles 'consumer-rules.pro'
     }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-}
-
-repositories {
-    google()
-    mavenCentral()
 }
 
 dependencies {
     implementation "com.facebook.react:react-native:+"
-    compileOnly "com.google.android.gms:play-services-ads-identifier:18.0.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+    if (useLocalCore) {
+        // Monorepo: source-compiling the core means its transitive runtime deps are
+        // NOT inherited — declare them here.
+        implementation 'com.android.installreferrer:installreferrer:2.2'   // Play Install Referrer
+        implementation 'com.google.android.gms:play-services-appset:16.0.2' // App Set ID
+        implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1' // GAID
+    } else {
+        // Published consumer: the core AAR brings its own transitive deps + R8 rules.
+        // Requires the JitPack repo (declared above; also add it in the consumer app's
+        // settings.gradle dependencyResolutionManagement — see README).
+        implementation 'com.github.bablu147:reflect-android:1.0.0'
+    }
 }
