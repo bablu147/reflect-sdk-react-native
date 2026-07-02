@@ -1,6 +1,6 @@
 {
   "name": "@reflect-sdk/react-native",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Reflect MMP SDK for React Native — mobile attribution, event tracking, deep linking, and SKAN. Thin wrapper over the shared native ReflectCore engine.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",

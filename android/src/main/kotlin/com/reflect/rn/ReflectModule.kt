@@ -110,16 +110,20 @@ class ReflectModule(private val reactContext: ReactApplicationContext) :
     //    onNewIntent → RN → ActivityEventListener automatically, so WARM deep links
     //    are captured with no host code. Cold links are read by the core off the
     //    activity intent via getInitialDeepLink once the activity is attached.
-    override fun onNewIntent(intent: Intent?) {
-        if (intent == null) return
-        currentActivity?.intent = intent               // so a later getInitialDeepLink sees it
+    // NOTE: params are NON-NULL to match RN's ActivityEventListener. Recent RN
+    // (Kotlin-migrated ReactAndroid) declares these as non-null `Intent`/`Activity`,
+    // so a nullable `Intent?`/`Activity?` override "overrides nothing" and the module
+    // fails to compile. Older RN exposes them as Java platform types, which accept a
+    // non-null override too — so this signature is correct on every supported RN.
+    override fun onNewIntent(intent: Intent) {
+        reactContext.currentActivity?.intent = intent               // so a later getInitialDeepLink sees it
         intent.data?.let { core.handleDeepLinkUri(it) }
     }
 
-    override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) { /* unused */ }
+    override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) { /* unused */ }
 
     override fun onHostResume() {
-        currentActivity?.let { core.attachActivity(it) } // enables getInitialDeepLink
+        reactContext.currentActivity?.let { core.attachActivity(it) } // enables getInitialDeepLink
         flushPending()
     }
 

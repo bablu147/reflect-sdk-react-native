@@ -29,7 +29,7 @@ import type {
 
 // Wire-form brand stamped on sdk_version + X-Reflect-Sdk (the core defaults to the
 // Flutter brand unless the host passes this). Bump in lockstep with package.json.
-const RN_SDK_VERSION = "react-native-2.0.0";
+const RN_SDK_VERSION = "react-native-2.0.1";
 
 let _initialized = false;
 let _debug = false;
