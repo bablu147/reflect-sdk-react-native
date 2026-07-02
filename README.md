@@ -14,17 +14,41 @@ native rewrite; the public JS API stays backward-compatible and gains new method
 
 ## Install
 
+Install from GitHub, pinned to a tagged release. This package is **not** published
+to the public npm registry — `npm install @reflect-sdk/react-native` will 404.
+
 ```sh
-npm install github:bablu147/reflect-sdk-react-native
-# or
-yarn add github:bablu147/reflect-sdk-react-native
+npm install github:bablu147/reflect-sdk-react-native#v2.0.0
 ```
 
-This is an autolinked native module. After installing, rebuild your app:
+This is an autolinked native module.
+
+**Android** — the shared core (`com.github.bablu147:reflect-android`) is pulled from
+JitPack. React Native 0.73+ resolves dependencies per-project, so add the repository
+to an `allprojects` block in your app's **root `android/build.gradle`**. A
+`settings.gradle` `dependencyResolutionManagement` block is **ignored** on RN 0.73+
+and the build fails with `Could not resolve com.github.bablu147:reflect-android`:
+
+```gradle
+// android/build.gradle — after the buildscript { } block
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }   // com.github.bablu147:reflect-android
+    }
+}
+```
+
+**iOS** — install the pods (pulls the shared `ReflectCore` pod):
 
 ```sh
-cd ios && pod install && cd ..   # iOS only
-npx react-native run-ios         # or run-android
+cd ios && pod install && cd ..
+```
+
+Then rebuild the **native** app — a Metro/JS reload is not enough for a newly-added
+native module (and Expo Go won't work; use a development build):
+
+```sh
+npx react-native run-android   # or run-ios
 ```
 
 Requires `react >= 18.0.0` and `react-native >= 0.71.0`.
@@ -172,14 +196,16 @@ automatic (`coreSrcDir.exists()`).
 ### Consumer setup
 
 ```sh
-npm install @reflect-sdk/react-native   # or: npm install github:bablu147/reflect-sdk-react-native
+npm install github:bablu147/reflect-sdk-react-native#v2.0.0
 cd ios && pod install && cd ..
 ```
 
-Android needs the JitPack repo once, in your app's `android/settings.gradle`:
+Android needs the JitPack repo once, in an `allprojects` block in your app's **root
+`android/build.gradle`** (React Native 0.73+ ignores a `settings.gradle`
+`dependencyResolutionManagement` block — dependencies resolve per-project):
 
 ```gradle
-dependencyResolutionManagement {
+allprojects {
     repositories {
         maven { url 'https://jitpack.io' }   // for com.github.bablu147:reflect-android
     }
